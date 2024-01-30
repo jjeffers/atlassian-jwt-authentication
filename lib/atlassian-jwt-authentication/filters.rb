@@ -49,20 +49,20 @@ module AtlassianJwtAuthentication
       # All install (including upgrades) / uninstall hooks are asymmetrically
       # signed with RS256 (RSA Signature with SHA-256) algorithm
       log(:info, "Client #{client_key}: verifying the JWT token")
-      if _verify_jwt(addon_key, skip_qsh_verification: true, force_asymmetric_verify: true)
+      if _verify_jwt(addon_key, consider_param: true, skip_qsh_verification: true, force_asymmetric_verify: true)
         log(:info, "Client #{client_key}: JWT token verified")
         true
       else
         log(:info, "Client #{client_key}: JWT token was not verified")
-        current_jwt_token.destroy if current_jwt_token.persisted?
-        render_forbidden
+        current_jwt_token.destroy if current_jwt_token
+        render_unauthorized
       end
     end
 
     def on_add_on_uninstalled
       addon_key = params[:key]
 
-      return unless _verify_jwt(addon_key, skip_qsh_verification: true, force_asymmetric_verify: true)
+      return unless _verify_jwt(addon_key, consider_param: true, skip_qsh_verification: true, force_asymmetric_verify: true)
 
       client_key = params[:clientKey]
 
