@@ -2,7 +2,7 @@ require 'faraday'
 
 module AtlassianJwtAuthentication
   module HttpClient
-    def self.new(url = nil, options = nil)
+    def self.new(url = nil, options = {})
       client = Faraday.new(url, options) do |f|
         if AtlassianJwtAuthentication.debug_requests || AtlassianJwtAuthentication.log_requests
           f.response :logger, nil, bodies: AtlassianJwtAuthentication.debug_requests
