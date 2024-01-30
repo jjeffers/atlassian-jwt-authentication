@@ -18,6 +18,7 @@ module AtlassianJwtAuthentication
     end
 
     def verify
+      log(:info, "Verifying JWT token for client_key #{jwt} and addon_key #{addon_key}")
       unless jwt.present? && addon_key.present?
         return false
       end
@@ -39,6 +40,8 @@ module AtlassianJwtAuthentication
           client_key: data['iss'],
           addon_key: addon_key
       ).first
+
+      log(:info, "JWT auth found: #{jwt_auth.inspect}")
 
       # Discard the tokens without verification
       if encoding_data['alg'] == 'none'
@@ -64,6 +67,7 @@ module AtlassianJwtAuthentication
         decode_key = jwt_auth.shared_secret
       end
 
+      log(:info, "Decode key: #{decode_key.inspect}")
       decode_options = {}
       if encoding_data['alg'] == 'RS256'
         decode_options = { algorithms: ['RS256'] }

@@ -24,10 +24,7 @@ module AtlassianJwtAuthentication
       base_url = params[:baseUrl]
       api_base_url = params[:baseApiUrl] || base_url
 
-      # All install (including upgrades) / uninstall hooks are asymmetrically
-      # signed with RS256 (RSA Signature with SHA-256) algorithm
-      return false unless _verify_jwt(addon_key, force_asymmetric_verify: true)
-
+      
       jwt_auth = JwtToken.where(client_key: client_key, addon_key: addon_key).first
       if jwt_auth.nil?
         self.current_jwt_token = JwtToken.new(jwt_token_params)
@@ -49,13 +46,23 @@ module AtlassianJwtAuthentication
 
       current_jwt_token.save!
 
-      true
+      # All install (including upgrades) / uninstall hooks are asymmetrically
+      # signed with RS256 (RSA Signature with SHA-256) algorithm
+      log(:info, "Client #{client_key}: verifying the JWT token")
+      if _verify_jwt(addon_key, skip_qsh_verification: true, force_asymmetric_verify: true)
+        log(:info, "Client #{client_key}: JWT token verified")
+        true
+      else
+        log(:info, "Client #{client_key}: JWT token was not verified")
+        current_jwt_token.destroy
+        render_forbidden
+      end
     end
 
     def on_add_on_uninstalled
       addon_key = params[:key]
 
-      return unless _verify_jwt(addon_key, force_asymmetric_verify: true)
+      return unless _verify_jwt(addon_key, skip_qsh_verification: true, force_asymmetric_verify: true)
 
       client_key = params[:clientKey]
 
@@ -125,18 +132,21 @@ module AtlassianJwtAuthentication
         return false
       end
 
+      
       if request.headers['authorization'].present?
         algorithm, possible_jwt = request.headers['authorization'].split(' ')
         jwt = possible_jwt if algorithm == 'JWT'
       end
 
+      log(:info, "Client JWT #{jwt}, force sasymmetic verify: #{force_asymmetric_verify}")
       jwt_verification = AtlassianJwtAuthentication::JWTVerification.new(addon_key, nil, force_asymmetric_verify, jwt, request)
       jwt_verification.exclude_qsh_params = exclude_qsh_params
       jwt_verification.logger = logger if defined?(logger)
 
       jwt_auth, account_id, context, qsh_verified = jwt_verification.verify
-
+      log(:info, "JWT token verification result: #{jwt_auth.inspect}, account_id: #{account_id}, context: #{context}, qsh_verified: #{qsh_verified}")
       unless jwt_auth && (qsh_verified || skip_qsh_verification)
+        log(:error, 'JWT token verification failed')
         render_unauthorized
         return false
       end
