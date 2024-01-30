@@ -54,7 +54,7 @@ module AtlassianJwtAuthentication
         true
       else
         log(:info, "Client #{client_key}: JWT token was not verified")
-        current_jwt_token.destroy
+        current_jwt_token.destroy if current_jwt_token.persisted?
         render_forbidden
       end
     end
