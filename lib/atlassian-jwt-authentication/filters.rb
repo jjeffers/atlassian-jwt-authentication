@@ -28,10 +28,6 @@ module AtlassianJwtAuthentication
       jwt_auth = JwtToken.where(client_key: client_key, addon_key: addon_key).first
       if jwt_auth.nil?
         self.current_jwt_token = JwtToken.new(jwt_token_params)
-      elsif jwt_auth.id != current_jwt_token.id
-        # Update request was issued to another plugin
-        render_forbidden
-        return false
       end
 
       current_jwt_token.addon_key = addon_key
