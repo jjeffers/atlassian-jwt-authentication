@@ -35,6 +35,7 @@ module AtlassianJwtAuthentication
       data = decoded[0]
       encoding_data = decoded[1]
 
+      log(:info, "Searching for JWT token for client key #{data['iss']} and addon key #{addon_key}")
       # Find a matching JWT token in the DB
       jwt_auth = JwtToken.where(
           client_key: data['iss'],
